@@ -1,0 +1,20 @@
+service: tile-broker-lambda
+frameworkVersion: '3'
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+provider:
+  name: aws
+  runtime: nodejs14.x
+
+functions:
+  app:
+    handler: index.handler
+    events:
+      - http: 'ANY /'
+
+  sayHello:
+    handler: index.handler
+    events:
+      - http: 'GET /hello'
