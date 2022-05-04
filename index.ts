@@ -7,9 +7,9 @@ import { validationResult, param } from 'express-validator';
 const app = express();
 app.use(express.json());
 
-const { AWS_REGION, S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG } = process.env;
+const { S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG } = process.env;
 
-if (!AWS_REGION || !S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG) {
+if (!S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG) {
   throw new Error('Missing required environment variables');
 }
 

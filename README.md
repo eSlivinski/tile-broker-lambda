@@ -5,7 +5,7 @@
 1. Define your AWS profile
 
 ```sh
-export AWS_PROFILE default
+export AWS_PROFILE="sandbox"
 ```
 
 2. Install node_modules

@@ -12,7 +12,6 @@ functions:
   app:
     handler: index.handler
     environment:
-      AWS_REGION: us-east-1
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
@@ -22,4 +21,4 @@ functions:
   fetchTile:
     handler: index.handler
     events:
-      - http: 'GET /tiles/{tilesetId}/{z}/{x}/{y}.png'
+      - http: 'GET /tiles/{any+}'
