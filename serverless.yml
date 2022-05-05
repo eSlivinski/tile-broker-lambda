@@ -15,10 +15,16 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
+      RENDER_URL: http://localhost:4000/dev/test
     events:
       - http: 'ANY /'
 
   fetchTile:
     handler: index.handler
+    environment:
+      S3_BUCKET: image-tile-mart
+      S3_PATH_TILE_CACHE: tile-cache
+      S3_PATH_STYLE_CONFIG: style-config
+      RENDER_URL: http://localhost:4000/dev/test
     events:
-      - http: 'GET /tiles/{any+}'
+      - http: 'GET /tiles/{proxy+}'

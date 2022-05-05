@@ -1,15 +1,16 @@
-import * as serverless from 'serverless-http';
-import * as express from 'express';
+import serverless from 'serverless-http';
+import express from 'express';
 import * as AWS from 'aws-sdk';
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, param } from 'express-validator';
+import axios from 'axios';
 
 const app = express();
 app.use(express.json());
 
-const { S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG } = process.env;
+const { S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG, RENDER_URL } = process.env;
 
-if (!S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG) {
+if (!S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG || RENDER_URL) {
   throw new Error('Missing required environment variables');
 }
 
@@ -24,7 +25,6 @@ const fetchTileValidations = [
     .custom((z: number): Boolean => z > 0 && z <= 22)
     .withMessage('z must be an integer between 1 and 22'),
 
-  // TODO: make these more specific
   param('x').toInt().isInt().withMessage('x must be an integer'),
 
   param('y').toInt().isInt().withMessage('y must be an integer'),
@@ -48,12 +48,13 @@ async function getTile(
     const result = data.Body.toString();
 
     return { success: true, result };
-  } catch (error) {
-    return { success: false, error: error.message };
+  } catch (error: any) {
+    return { success: false, error };
   }
 }
 
-async function tilesetExists(tilesetId: number): Promise<boolean> {
+// XXX: this is currently based on extremely coarse logic
+async function validateTileset(tilesetId: number): Promise<boolean> {
   const request: AWS.S3.ListObjectsRequest = {
     Bucket: S3_BUCKET!,
     Prefix: `${S3_PATH_STYLE_CONFIG}/${tilesetId}.xml`,
@@ -83,15 +84,17 @@ app.get(
         return res.status(200).json(tileResponse.result);
       }
 
-      const exists = await tilesetExists(+tilesetId);
+      const tilesetIsValid = await validateTileset(+tilesetId);
 
-      if (exists) {
-        return res.status(201).json(`Tile doesn't exist... yet`);
+      if (tilesetIsValid === true) {
+        // XXX: This is probably not the way we want to invoke the render lambda
+        const { data } = await axios.get(RENDER_URL!);
+        return res.status(200).json(data);
       }
 
       return res.status(404).json(`Unknown tileset: ${tilesetId}`);
     } catch (error) {
-      return res.status(500).json(error.message);
+      return res.status(500).json(`Unexpected error occurred. ${JSON.stringify(error)}`);
     }
   },
 );
