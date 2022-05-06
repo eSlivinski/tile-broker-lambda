@@ -15,7 +15,7 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: http://localhost:4000/dev/test
+      RENDER_URL: https://x8feyahf46.execute-api.us-east-1.amazonaws.com/dev/tiles/
     events:
       - http: 'ANY /'
 
@@ -25,6 +25,6 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: http://localhost:4000/dev/test
+      RENDER_URL: https://x8feyahf46.execute-api.us-east-1.amazonaws.com/dev/tiles/
     events:
       - http: 'GET /tiles/{proxy+}'

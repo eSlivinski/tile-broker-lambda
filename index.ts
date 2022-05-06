@@ -10,7 +10,7 @@ app.use(express.json());
 
 const { S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG, RENDER_URL } = process.env;
 
-if (!S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG || RENDER_URL) {
+if (!S3_BUCKET || !S3_PATH_TILE_CACHE || !S3_PATH_STYLE_CONFIG || !RENDER_URL) {
   throw new Error('Missing required environment variables');
 }
 
@@ -30,29 +30,6 @@ const fetchTileValidations = [
   param('y').toInt().isInt().withMessage('y must be an integer'),
 ];
 
-async function getTile(
-  tilesetId: number,
-  z: number,
-  x: number,
-  y: number,
-): Promise<{ success: true; result: string } | { success: false; error: string }> {
-  try {
-    const request: AWS.S3.GetObjectRequest = {
-      Bucket: S3_BUCKET!,
-      Key: `${S3_PATH_TILE_CACHE}/${tilesetId}/${z}/${x}/${y}.png`,
-    };
-    const data = await S3.getObject(request).promise();
-
-    if (!data.Body) throw new Error('The requested tile did not contain any data');
-
-    const result = data.Body.toString();
-
-    return { success: true, result };
-  } catch (error: any) {
-    return { success: false, error };
-  }
-}
-
 // XXX: this is currently based on extremely coarse logic
 async function validateTileset(tilesetId: number): Promise<boolean> {
   const request: AWS.S3.ListObjectsRequest = {
@@ -62,6 +39,37 @@ async function validateTileset(tilesetId: number): Promise<boolean> {
   const data = await S3.listObjects(request).promise();
 
   return data?.Contents?.length === 1;
+}
+
+async function fetchCachedTile(
+  tilesetId: number,
+  z: number,
+  x: number,
+  y: number,
+): Promise<{ success: true; result: AWS.S3.Body } | { success: false; error: string }> {
+  try {
+    const request: AWS.S3.GetObjectRequest = {
+      Bucket: S3_BUCKET!,
+      Key: `${S3_PATH_TILE_CACHE}/${tilesetId}/${z}/${x}/${y}.png`,
+    };
+    const data = await S3.getObject(request).promise();
+
+    if (!data.Body) throw new Error('The requested tile did not contain any data');
+
+    const result = data.Body;
+
+    return { success: true, result };
+  } catch (error: any) {
+    return { success: false, error };
+  }
+}
+
+async function renderTile(tilesetId: number, z: number, x: number, y: number): Promise<any> {
+  const renderTileLambda = `${RENDER_URL!}/${tilesetId}/${z}/${x}/${y}.png`;
+  const response = await axios.get(renderTileLambda, {
+    responseType: 'arraybuffer',
+  });
+  return response.data;
 }
 
 app.get(
@@ -75,28 +83,38 @@ app.get(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { tilesetId, z, x, y } = req.params;
-
       // Params are already coerced to numeric in the validation
-      const tileResponse = await getTile(+tilesetId, +z, +x, +y);
+      const tilesetId: number = +req.params.tilesetId;
+      const z: number = +req.params.z;
+      const x: number = +req.params.x;
+      const y: number = +req.params.y;
 
-      if (tileResponse.success === true) {
-        return res.status(200).json(tileResponse.result);
+      // const tilesetIsValid = await validateTileset(tilesetId);
+
+      // if (!tilesetIsValid) {
+      //   return res.status(404).json(`Unknown tileset: ${tilesetId}`);
+      // }
+
+      const cachedTileResponse = await fetchCachedTile(tilesetId, z, x, y);
+      let tile;
+
+      if (cachedTileResponse.success === true) {
+        ({ result: tile } = cachedTileResponse);
+      } else {
+        tile = await renderTile(tilesetId, z, x, y);
       }
 
-      const tilesetIsValid = await validateTileset(+tilesetId);
+      const buffer = Buffer.from(tile, 'binary');
 
-      if (tilesetIsValid === true) {
-        // XXX: This is probably not the way we want to invoke the render lambda
-        const { data } = await axios.get(RENDER_URL!);
-        return res.status(200).json(data);
-      }
-
-      return res.status(404).json(`Unknown tileset: ${tilesetId}`);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', buffer.length);
+      return res.status(200).end(buffer);
     } catch (error) {
       return res.status(500).json(`Unexpected error occurred. ${JSON.stringify(error)}`);
     }
   },
 );
 
-module.exports.handler = serverless(app);
+module.exports.handler = serverless(app, {
+  binary: ['application/json', 'image/png'],
+});
