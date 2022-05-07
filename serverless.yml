@@ -7,6 +7,15 @@ plugins:
 provider:
   name: aws
   runtime: nodejs14.x
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:ListObjects
+      Resource: "arn:aws:s3:::image-tile-mart/*"
 
 functions:
   app:
@@ -15,9 +24,13 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: https://x8feyahf46.execute-api.us-east-1.amazonaws.com/dev/tiles/
+      RENDER_URL: https://lc2l48p06k.execute-api.us-east-1.amazonaws.com/dev/tiles
     events:
-      - http: 'ANY /'
+      - http:
+          path: /
+          method: any
+          cors: true
+
 
   fetchTile:
     handler: index.handler
@@ -25,6 +38,9 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: https://x8feyahf46.execute-api.us-east-1.amazonaws.com/dev/tiles/
+      RENDER_URL: https://lc2l48p06k.execute-api.us-east-1.amazonaws.com/dev/tiles
     events:
-      - http: 'GET /tiles/{proxy+}'
+      - http:
+          path: /tiles/{proxy+}
+          method: get
+          cors: true

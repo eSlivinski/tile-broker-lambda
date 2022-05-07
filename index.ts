@@ -1,12 +1,14 @@
 import serverless from 'serverless-http';
 import express from 'express';
 import * as AWS from 'aws-sdk';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { validationResult, param } from 'express-validator';
 import axios from 'axios';
 
 const app = express();
 app.use(express.json());
+
+console.log(process.env);
 
 const { S3_BUCKET, S3_PATH_TILE_CACHE, S3_PATH_STYLE_CONFIG, RENDER_URL } = process.env;
 
@@ -60,6 +62,7 @@ async function fetchCachedTile(
 
     return { success: true, result };
   } catch (error: any) {
+    console.log('cache error', error);
     return { success: false, error };
   }
 }
@@ -75,7 +78,9 @@ async function renderTile(tilesetId: number, z: number, x: number, y: number): P
 app.get(
   '/tiles/:tilesetId/:z/:x/:y.png',
   ...fetchTileValidations,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     try {
       const errors = validationResult(req);
 
@@ -108,9 +113,11 @@ app.get(
 
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Content-Length', buffer.length);
+
       return res.status(200).end(buffer);
     } catch (error) {
-      return res.status(500).json(`Unexpected error occurred. ${JSON.stringify(error)}`);
+      console.error(error);
+      return res.status(500).json(error);
     }
   },
 );
