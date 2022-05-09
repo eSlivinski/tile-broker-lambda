@@ -24,7 +24,7 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: https://lc2l48p06k.execute-api.us-east-1.amazonaws.com/dev/tiles
+      RENDER_URL: https://h95897sav4.execute-api.us-east-1.amazonaws.com/dev/tiles
     events:
       - http:
           path: /
@@ -38,7 +38,7 @@ functions:
       S3_BUCKET: image-tile-mart
       S3_PATH_TILE_CACHE: tile-cache
       S3_PATH_STYLE_CONFIG: style-config
-      RENDER_URL: https://lc2l48p06k.execute-api.us-east-1.amazonaws.com/dev/tiles
+      RENDER_URL: https://h95897sav4.execute-api.us-east-1.amazonaws.com/dev/tiles
     events:
       - http:
           path: /tiles/{proxy+}
